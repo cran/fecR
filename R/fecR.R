@@ -1,0 +1,14 @@
+#' fecR: A package for calculating fishing effort
+#'
+#' The fecR package calculates two types of fishing effort:
+#' \strong{Days at Sea} and \strong{Fishing Days}.
+#' The calculations are based on work carried out at the 2nd Ad-Hoc DCF Workshop on Transversal Variables, Nicosia, Cyprus, 22-26 February.
+#' 
+#' @section fecR functions:
+#' The two main functions are \code{\link{check_format}} and \code{\link{calc_fishing_effort}}.
+#' The first checks that the input data is in the correct format (see the package vignette \emph{checking_data} for details).
+#' The second performs the calculations (see the package vignette \emph{calculating_fishing_effort} for details).
+#'
+#' @docType package
+#' @name fecR
+NULL

@@ -1,0 +1,489 @@
+---
+title: "fecR: Checking the fishing trip input data"
+author: |
+  | Finlay Scott^1^, Nuno Prista^2^ and Thomas Reilly^3^
+  | 1. European Commission, DG Joint Research Centre, Directorate D - Sustainable Resources, Unit D.02 Water and Marine Resources, via Enrico Fermi 2749, 21027 Ispra (VA), Italy
+  | 2. SLU, Swedish University of Agricultural Sciences, Havsfiskelaboratoriet, Turistgatan 5, 453 30 LYSEKIL  
+  | 3. Marine Scotland Science, PO Box 101, 375 Victoria Road, Aberdeen, AB11 9DB, Scotland, UK 
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+  html_document:
+    toc: true
+    theme: united
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+# Introduction
+
+Using the effort calculations in *fecR* requires the input data to be in a particular format.
+This vignette introduces the *check_format()* function in *fecR* that can be used to check the structure of your input data before the effort is calculated.
+
+The function checks:
+* The type of the columns (e.g. the *gt* column should be numeric);
+* The data columns (*depdate*, *retdate* and *fishdate*) are in the correct format;
+* The time columns (*deptime* and *rettime*) are in the correct format;
+* The gear code is included in the Master Data Register;
+* The fishing area in included in the DCF level 3 (level 4 for Baltic);
+* The ICES rectangle exists.
+
+It currently does not check:
+* That the date and times are sensible;
+
+Some basic automatic corrections are offered (see the details below). However, any changes made to the data should be confirmed by the user after the function has executed.
+
+The function returns the data set.
+If automatic corrections have been asked for, the returned data set will have the corrections. Changes are noted to the screen by the function.
+
+# Data structure
+
+This table is adapted from the Nicosia report Annex.
+Each row in the table is a fishing operation.
+Each fishing operation is part of a fishing trip.
+Each fishing trip has the same departure and return dates and times and trip ID.
+
+|Column name|Description|Format|Notes|Example|
+|-------------|---------------|--------------|-----------------------|-------------|
+| eunr_id | Vessel identifier, anonymous|Character string||"MyVessel1234"|
+| loa | Vessel length in cm | Numeric | | 3654 |
+| gt | Gross tonnage | Numeric | | 355 |
+| kw | Engine power | Numeric | | 1251 |
+| trip_id | Unique identifier for fishing trip | Character string | | "MyTrip1234"|
+| depdate | Date of trip departure | Character string | 8 numeric characters: YYYYMMDD | "20140214"|
+| deptime | Time of trip departure | Character string | 4 numeric characters: HHMM. HH and MM can be separated by a colon: HH:MM| "0745" or "0745"|
+| retdate | Date of trip return | Character string | 8 numeric characters: YYYYMMDD | "20140214"|
+| rettime | Time of trip return | Character string | 4 numeric characters: HHMM. HH and MM can be separated by a colon: HH:MM| "0745" or "0745"|
+| fishdate | Date of fishing operation | Character string | 8 numeric characters: YYYYMMDD | "20140214"|
+| gear | Gear used for specific fishing operation | Character string | Gear must be listed in the Master Data Register | "OTB" |
+| gear_mesh_size | Mesh size in mm| Integer | Every mm will be considered as a different gear. For example, a gear with a mesh size of 81 will be considered as a different gear to one with a mesh size of 80. The data needs to be encoded so that size ranges have the same integer. For example, set all sizes in the range 80-89 as 80. A gear without a mesh, e.g. a long line, will have a mesh size of 0. Missing values are not allowed. | 80 |
+| fishing_area | Area where the fishing operation took place. DCF level 3 (level 4 for Baltic)| Character string | Must be upper case. Missing values are not allowed. | "27.4.B"|
+| economic_zone | Economic zone where the fishing operation took place | Character string | Must be one of "EU", "NOR" or "UNKNOWN"| "EU" |
+| rectangle | Rectangle where fishing operation took place | Character string | For example, ICES rectangle or GSA + statistical area. No symbols are allowed, e.g. no ' to separate characters. Must be upper case. Note: GSAs not yet added to list | "39F8"|
+
+# Workflow
+
+The *calc_fishing_effort()* function in *fecR* will only work if the input data is correct.
+The data can be be prepared using a spreadsheet and then saved as a CSV file. This can then be read into R to used by *fecR*.
+
+The simplest way of confirming if the input data is correct is to use the *check_format()* function in *fecR*.
+If the function executes with a positive message and no warnings, the data is OK and can be used with *calc_fishing_effort()*.
+If the data is not OK warnings are produced and informative messages written to the screen.
+The user should then make changes to the data (either in R or in the original CSV file) and try again.
+
+As mentioned above, it is possible to call *check_format()* and ask for some basic automatic corrections.
+If any corrections are made messages are written to screen describing them.
+It is not possible to automatically correct for everything.
+The returned data set should be passed into *check_format()* again to see if it passes the checks.
+
+# Examples
+
+In this section we show some examples of running *check_format()* with data and how the automatic correction be used.
+
+First we load the library:
+
+```{r}
+library(fecR)
+```
+
+## Perfect data
+
+In this test we invent some data that passes the checks without corrections.
+The data conists of two trips and four fishing activities.
+
+```{r}
+okdata <- data.frame(
+    eunr_id = "my_boat", loa = 2000, gt = 70, kw = 400,
+    trip_id = c("trip1","trip1","trip2","trip2"),
+    depdate = rep(c("20140718", "20141023"), each=2),
+    deptime = rep(c("0615", "0730"), each=2),
+    retdate = rep(c("20140719", "20141024"), each=2),
+    rettime = rep(c("1830", "1615"), each=2),
+    fishdate = c("20140718", "20140719", "20141023", "20141024"),
+    gear = c("OTB","OTB","GN","GN"), gear_mesh_size = 80, fishing_area = "27.4.B",
+    economic_zone = "EU", rectangle = "39F0",
+    stringsAsFactors = FALSE
+)
+okdata
+```
+We can check the data by calling *check_format()* without correction (the default setting):
+
+```{r}
+test <- check_format(okdata)
+```
+You can see that the function checks each of the columns before giving an output message saying that everything is OK.
+As there were no warnings we can now use this data in *calc_fishing_effort()* if we want to.
+
+##  Data with an extra column
+
+The input data has a strict number of columns and the names need to follow the example above.
+In this example, an extra column is added to the data.
+Without asking for corrections, *check_format()* will complain.
+
+```{r}
+extra_col <- cbind(okdata, new_col = runif(nrow(okdata)))
+test <- check_format(extra_col)
+```
+You can see that a warning is produced and the output message indicates that there is a problem with the data.
+
+We can run *check_format()* with the automatic corrections turned on:
+
+```{r}
+test <- check_format(extra_col, correct=TRUE)
+```
+
+You can see that there is a message about the extra column and that it will be removed.
+The returned data set has been corrected by removing the extra column.
+This means that if we call the check function on the returned, corrected data, it should pass the check without problem.
+
+```{r}
+test2 <- check_format(test)
+```
+
+## Wrong column names 
+
+If one or more of your columns is named incorrectly, the data check complains.
+No automatic correction is possible for this problem. You will have to rename the columns yourself.
+
+Note that the column names are case-sensitive.
+
+```{r}
+wrong_col <- okdata
+colnames(wrong_col)[3] <- "something"
+test <- check_format(wrong_col)
+```
+
+The warning message tells you which columns are missing.
+
+## Checking the *eunr_id* column
+
+The *eunr_id* column is the vessel identifier. It should be a character string.
+If the column is not a character string it is possible to use the automatic correction to force it to be a character.
+
+```{r}
+wrong_eunr_id <- okdata
+# Force them to be numeric instead of character
+wrong_eunr_id[,"eunr_id"] <- 1234
+test <- check_format(wrong_eunr_id)
+# With the automatic check
+test <- check_format(wrong_eunr_id, correct=TRUE)
+```
+
+If an entry is missing in the column (e.g. it is *NA* or empty) then check complains.
+It is not possible to automatically correct for missing data.
+
+```{r}
+wrong_eunr_id <- okdata
+# Set to be missing
+wrong_eunr_id[1,"eunr_id"] <- as.character(NA)
+test <- check_format(wrong_eunr_id)
+```
+
+## Checking the *loa*, *gt* and *kw* columns
+
+The *loa*, *gt* and *kw* columns store the vessel length in cm, the gross tonnage and the engine power respectively.
+These columns must be numeric, i.e. no units or characters.
+If they are not numeric check complains.
+
+Here we demonstrate with the *loa* column.
+
+```{r}
+wrong_loa <- okdata
+# Turn to a character string
+wrong_loa[c(2,3),"loa"] <- "90m"
+test <- check_format(wrong_loa)
+```
+
+If automatic correction is turned on, the columns are stripped of non-numeric characters and forced to be numeric.
+This may be enough to pass check. However, this correction is not a guarantee and all automatic corrections should be verified by the user.
+
+```{r}
+test <- check_format(wrong_loa, correct=TRUE)
+```
+
+If there are no numerics in the columns automatic correction is not possible and and check complains.
+
+```{r}
+wrong_loa <- okdata
+# Change to some entries to be alphabetical with no numerics
+wrong_loa[c(2,3),"loa"] <- "notnumeric"
+test <- check_format(wrong_loa, correct=TRUE)
+```
+
+This error will need to be fixed by hand.
+
+## Checking date columns
+
+The date columns *depdate*, *retdate* and *fishdate* must be characters and each entry must have 8 numeric characters of the format: *YYYYMMDD*, 
+e.g. "20161023".
+
+It is possible to automatically correct for the column not being a character string, e.g. if an 8 character numeric is entered.
+However, it is not possible to correct for the the format, e.g. if there are too few characters.
+
+Here the data is numeric when it should be a character string.
+Automatic correction is possible in this case.
+
+```{r}
+wrong_date <- okdata
+# Needs to be character string, not numeric even if format is OK
+wrong_date[, "retdate"] <- as.numeric(wrong_date[, "retdate"])
+test <- check_format(wrong_date)
+# We can correct
+test <- check_format(wrong_date, correct=TRUE)
+```
+
+If the format is wrong then we cannot automatically correct and check complains.
+
+```{r}
+wrong_date <- okdata
+# Wrong format - year is too short
+wrong_date[c(3,4), "retdate"] <- "141024"
+test <- check_format(wrong_date)
+# Wrong format again - month must be a numeric character
+wrong_date[c(3,4), "retdate"] <- "October14"
+test <- check_format(wrong_date)
+```
+
+Missing data is not allowed and check complains.
+It is not possible to correct for missing data.
+
+```{r}
+wrong_date <- okdata
+# Missing data
+wrong_date[c(3,4), "retdate"] <- as.character(NA)
+test <- check_format(wrong_date)
+```
+
+## Checking time columns
+
+The time columns *deptime* and *rettime* must be character strings of 4 numeric characters with the format *HHMM*, e.g. "0615".
+An additional : is allowed to seperate the *HH* and *MM*, e.g. "06:15".
+
+Note that the times use the 24 hour clock.
+
+Here the data is numeric when it should be a character string.
+It is possible to automatically correct for this.
+
+```{r}
+wrong_time <- okdata
+# Needs to be character string, not numeric even if format is OK
+wrong_time[, "rettime"] <- as.numeric(wrong_time[, "rettime"])
+test <- check_format(wrong_time)
+# We can correct by forcing to character
+test <- check_format(wrong_time, correct=TRUE)
+```
+
+If only 2 characters are provided and automatic correction is TRUE, the characters are assumed to be hours (*HH*) and minutes of "00" are appended to the string, e.g. "16" becomes "1600".
+
+```{r}
+wrong_time <- okdata
+wrong_time[c(3,4), "rettime"] <- "16"
+test <- check_format(wrong_time)
+test <- check_format(wrong_time, correct=TRUE)
+```
+
+This automatic correction only works if the 2 characters are numeric
+
+```{r}
+wrong_time <- okdata
+wrong_time[c(3,4), "rettime"] <- "TT"
+test <- check_format(wrong_time, correct=TRUE)
+```
+
+Two or four characters are needed. For example, "0130" is OK whereas "130" is not
+
+```{r}
+wrong_time <- okdata
+wrong_time[c(3,4), "rettime"] <- "130"
+test <- check_format(wrong_time)
+```
+
+A : separator is accecptable (*HH:MM*) but is removed from the returned data.
+
+```{r}
+wrong_time <- okdata
+wrong_time[c(3,4), "rettime"] <- "16:15"
+test <- check_format(wrong_time)
+test
+```
+
+*NA*s and missing values are not acceptable and cannot be automatically corrected.
+
+```{r}
+wrong_time <- okdata
+wrong_time[c(3,4), "rettime"] <- as.character(NA)
+test <- check_format(wrong_time)
+```
+
+## Checking gear codes
+
+The *gear* code column must be a character string and the code must be found in the Master Data Register.
+The check is case sensitive, e.g. "otb" is not valid whereas "OTB" is.
+
+Whitespace is not allowed. It can be automatically removed if wanted.
+
+```{r}
+wrong_gear <- okdata
+# Gear code is OK but whitespace
+wrong_gear[1,"gear"] <- " OTB"
+# Fails
+test <- check_format(wrong_gear)
+# Correct removes whitespace
+test <- check_format(wrong_gear, correct=TRUE)
+```
+
+If the gear code is not found in the MDR list then no automatic correction is possible.
+Unknown gear codes are not allowed and not corrected for.
+Here the gear is unknown because it is lower case. All gear codes must be upper case.
+
+```{r}
+wrong_gear[1,"gear"] <- "otb"
+test <- check_format(wrong_gear)
+```
+
+## Checking gear mesh size
+
+The *gear_mesh_size* column must be an integer.
+It holds the mesh size in mm. Every mm is considered as a different gear, e.g. a gear with a mesh size of 80 is considered to be a different gear to that with a mesh size of 81.
+This means that gear meshes in the range 80-89 mm should all be given the same gear mesh size of 80.
+
+Entries that are not integer will make check complain. There is no option to autocorrect this.
+
+```{r}
+wrong_ms <- okdata
+# Text in the entry - must be integer
+wrong_ms[4,"gear_mesh_size"] <- "80mm"
+test <- check_format(wrong_ms)
+# Not an integer
+wrong_ms[4,"gear_mesh_size"] <- 80.8
+test <- check_format(wrong_ms)
+```
+If an entry is missing (e.g. it is *NA*) then check will complain.
+It is possible to automatically correct this in which case the missing entry has a mesh size of 0.
+The returned data will pass check but may not be what you want.
+
+```{r}
+wrong_ms <- okdata
+wrong_ms[4,"gear_mesh_size"] <- NA
+test <- check_format(wrong_ms)
+test <- check_format(wrong_ms, correct=TRUE)
+test
+```
+
+## Checking the *fishing_area* column
+
+The *fishing_area* column must be a character string that stores the DCF level 3 code (or DCF level 4 if in the Baltic).
+Whitespace is not allowed. However, it is possible to automatically correct for whitespace.
+Similarly, if points (.) are found at the beginning or end of an entry, it is possible to automatically correct for them.
+Note that the check is case sensitive and all the entries must be in upper case.
+It is possible to automatically correct for lower case.
+
+```{r}
+wrong_fish_area <- okdata
+# Point at end
+wrong_fish_area[c(1,2),"fishing_area"] <- "27.4.A."
+test <- check_format(wrong_fish_area)
+test <- check_format(wrong_fish_area, correct=TRUE)
+# Lowercase
+wrong_fish_area[c(1,2),"fishing_area"] <- "27.4.a"
+test <- check_format(wrong_fish_area)
+test <- check_format(wrong_fish_area, correct=TRUE)
+# White space
+wrong_fish_area[c(1,2),"fishing_area"] <- "27.4.A "
+test <- check_format(wrong_fish_area)
+test <- check_format(wrong_fish_area, correct=TRUE)
+```
+
+Missing values are not allowed and cannot be automatically corrected.
+
+```{r}
+wrong_fish_area <- okdata
+wrong_fish_area[c(1,2),"fishing_area"] <- as.character(NA)
+test <- check_format(wrong_fish_area)
+```
+
+## Checking the *economic_zone* columm
+
+The *economic_zone* column must be a character string and must be one of "EU", "NOR" or "UNKNOWN".
+The check is case sensitive.
+If the entries do not match these strings then check complains.
+
+It is not possible to automatically correct any errors.
+
+```{r}
+wrong_econ <- okdata
+wrong_econ[3,"economic_zone"] <- "USA"
+test <- check_format(wrong_econ)
+```
+
+Missing values are not allowed and cannot be automatically corrected.
+
+```{r}
+wrong_econ <- okdata
+wrong_econ[3,"economic_zone"] <- ""
+test <- check_format(wrong_econ)
+```
+
+## Checking ICES rectangles
+
+The *rectangle* column must be a character string and each entry must be a valid ICES rectangle.
+If non alpha-numeric characters are found in the data it is possible to automatically correct for them by removing them.
+Similarly, the check is case sensitive but it is possible to automatically correct the case.
+
+```{r}
+wrong_rect <- okdata
+# with extra punctuation
+wrong_rect[3,"rectangle"] <- "39F0'" 
+test <- check_format(wrong_rect)
+test <- check_format(wrong_rect, correct=TRUE)
+test
+```
+
+Missing values are not allowed and cannot be automatically corrected.
+
+```{r}
+wrong_rect <- okdata
+wrong_rect[3,"rectangle"] <- ""
+test <- check_format(wrong_rect)
+```
+
+## Checking that the trip identifier is unique
+
+Each trip is defined by the start and return dates and times and has a unique identifier.
+A trip entry with the same trip ID cannot have different dates and times.
+
+
+```{r}
+# one trip, two days, different departure time, same identifier
+wrong_unique <- okdata
+wrong_unique[4,"deptime"] <- "0731"
+test <- check_format(wrong_unique)
+```
+
+Similarly, a trip with the same dates and times cannot have a different name.
+
+```{r}
+# Two trips with the same dates and dates
+wrong_unique <- okdata
+wrong_unique[4,"trip_id"] <- "trip3"
+test <- check_format(wrong_unique)
+```
+
+## Checking for duplicate entries
+
+There should be no duplicate entries in the data set.
+If duplicate entries are detected, it is possible to automatically correct by removing them.
+
+```{r}
+# Duplicates
+wrong_dup <- okdata
+# Add a duplicate row
+wrong_dup <- rbind(wrong_dup, wrong_dup[1,])
+test <- check_format(wrong_dup)
+test <- check_format(wrong_dup, correct=TRUE)
+```
+

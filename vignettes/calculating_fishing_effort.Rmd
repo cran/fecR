@@ -1,0 +1,252 @@
+---
+title: "fecR: Calculating fishing effort"
+author: |
+  | Finlay Scott^1^, Nuno Prista^2^ and Thomas Reilly^3^
+  | 1. European Commission, DG Joint Research Centre, Directorate D - Sustainable Resources, Unit D.02 Water and Marine Resources, via Enrico Fermi 2749, 21027 Ispra (VA), Italy
+  | 2. SLU, Swedish University of Agricultural Sciences, Havsfiskelaboratoriet, Turistgatan 5, 453 30 LYSEKIL  
+  | 3. Marine Scotland Science, PO Box 101, 375 Victoria Road, Aberdeen, AB11 9DB, Scotland, UK 
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+  html_document:
+    toc: true
+    theme: united
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+# Introduction
+
+This vignette introduces the *fecR* package and how to use it.
+The package implements fishing effort calculations that were developed at the 2nd Workshop on Transversal Variables held in Nicosia, Cyprus on 22-26 February 2016 (Castro Ribeiro et al., 2016).
+
+*fecR* can be used to calculate two types of fishing effort: *Days at Sea* and *Fishing Days*.
+These effort types measure different things. Days at Sea is concerned with the economics of fishing whereas Fishing Days is concerned with the biological pressure of fishing.
+These measures are explained in more detail below.
+
+# Workflow
+
+Using *fecR* is straightforward. It can be broken into three stages:
+
+* Prepare the data;
+* Check the data;
+* Calculate efort.
+
+## Preparing the data
+
+For the effort calculation function to work the input data must be prepared in the correct format.
+Details of this format can be found in the package vignette *checking_data* and also in the Annexes of the Nicosia report (Castro Ribeiro et al., 2016).
+
+The data must be stored as a *data.frame* in R. Each column of the data.frame has a specfic name and a specific format. For example, the departure data column must be called *depdate* and the entries of that column must be a character string of numeric characters of the format "YYYYMMDD", e.g. "20161027".
+
+It is probably easier to prepare your data using a spreadsheet and export it as a CSV file. The CSV file can then be read into R as a *data.frame* using the *read.csv()* function.
+
+## Checking the data
+
+It is important to check that the data is in the correct format before trying calculate the fishing effort.
+The function to do this is *check_format()*.
+Details and examples of how to use this function can be found in the package vignette *checking_data*.
+It is possible to for the *check_format()* to perform some simple corrections to the data.
+
+The data should be checked and revised until calling *check_format()* produces a happy success message and no warnings.
+
+## Calculating the effort
+
+The final step is to call the *calc_fishing_effort()* function with the data.
+This function calculates both effort measures and returns a list of two *data.frame*s. One holds the Days at Sea, the other Fishing Days.
+
+# Fishing trips
+
+Fishing effort is calculated for each fishing trip.
+It is therefore important to explore what we mean by trip and what happens during a trip.
+
+An example data set is created here.
+It consists of two fishing trips
+As mentioned above, it is essential that the input data is formatted correctly. More information can be seen in the *checking_data* vignette.
+
+```{r}
+# Make fake data of two trips
+trip1 <- data.frame(
+    eunr_id = "my_boat", loa = 2000, gt = 70, kw = 400, trip_id = "trip1",
+    # 4 day trip
+    depdate = "20140718", deptime = "0615", retdate = "20140721", rettime = "1615",
+    # Only fish on 2 of those
+    fishdate = c("20140719", "20140719", "20140719", "20140719", "20140720", "20140720", "20140720"), 
+    gear = c("OTB","OTB","OTB ","GN","OTB","GN","FPO"),
+    gear_mesh_size = c(80,80,80,50,80,50,0),
+    fishing_area = "27.4.B", economic_zone = "EU",
+    rectangle = c("39F0","40F0","41F0","41F0","41F0","41F0","41F0"),
+    stringsAsFactors = FALSE
+)
+trip2 <- data.frame(
+    eunr_id = "my_boat", loa = 2000, gt = 70, kw = 400, trip_id = "trip2",
+    # 2 day trip
+    depdate = "20140722", deptime = "0615", retdate = "20140723", rettime = "0600",
+    # Only fish on 2 of those
+    fishdate = c("20140722", "20140723", "20140723", "20140723"), 
+    gear = c("OTB","OTB","GN","FPO"),
+    gear_mesh_size = c(80,80,50,0),
+    fishing_area = "27.4.B",
+    economic_zone = "EU",
+    rectangle = c("39F0","39F0"),
+    stringsAsFactors = FALSE
+)
+# Stich them together to make a data set of two fishing trips
+dat <- rbind(trip1, trip2)
+dat
+```
+# Fishing trips
+
+The data above consists of two fishing trips.
+The trips are identified by the *trip_id* column which must be unique for each trip.
+Within each trip the departure and return dates and times must be the same (the *depdate*, *deptime*, *retdate* and *rettime* columns).
+
+Each fishing trip is made up of different fishing activites. A fishing activity is the use of a particular gear in a particular area on a particular date.
+Gear is a combination of the gear type and the gear mesh size.
+Gears of the same type but of different mesh size are considered to be different gears.
+Area is a combination of the economic zone, the fishing area and the fishing rectangle.
+
+Specifically, fishing activity is defined as the use of a type of gear (*gear*) with a particular mesh size (*gear_mesh_size*) in a particular economic zone (*economic_zone*) in a particular fishing area (*fishing_area*) in a particular rectangle (*rectangle*) on a particular date (*fishdate*).
+Each row of the data table represents an instance of fishing activity. Within each trip each fishing activity is unique.
+
+For example, *trip1* in the above data departed port on the 18th July 2014 at 06:15 and returned on the 21st July at 1615.
+During the trip seven unique fishing activities were performed over two days. Four activities happened on the 19th July and three on the 20th.
+On the 19th July an OTB gear with a mesh size of 80 was used in three different rectangles and a gill net (GN) was also used.
+The three OTB entries on the 19th July count as three different activities because they happened in three different rectangles and therefore different areas. 
+The use of the GN gear type happened in the same area as one of the OTB activities.
+Although it is the same area, because this is a different gear type it is considered to be another activity.
+
+Days at sea is reported at the gear (type and mesh size), fishing area and economic zone level.
+Fishing days is reported at the gear (type and mesh size), fishing area, economic zone and rectangle level, i.e. a lower geographical level.
+
+# Calculating Days at Sea
+
+The total days at sea is calculated as the number of commenced 24 hour periods of the trip.
+Only the total duration of trip is considered, i.e. the difference between departing and returning. 
+
+For example, *trip1* above starts on 18th July 2014 at 06:15 and returns on the 21st July 2014 at 16:15.
+The total duration of the trip is therefore 3*24 + 10 = 85 hours. This takes the trip into the 4th commencing 24 hour period.
+The total days at sea is therefore 4 days.
+
+We want to know the days at sea attributed to each activity on a trip.
+The total days at sea are split equally across each day on the trip on which fishing occurs, i.e. the number of unique fishing dates on the trip.
+In *trip1* the only days on which fishing occurs are the 19th and 20th of July, i.e. the number of fishing dates is 2.  
+The total days at sea is split equally among them so each fishing date gets 2 days at sea each.
+
+Within each fishing date, the days at sea attributed to that day is split equally across the fishing activities on that day.
+In *trip1* on the 19th July there are four different fishing activities (given by the different gear and area combinations).
+Each fishing activity on the 19th July therefore gets 2 / 4 = 0.5 fishing day each.
+On the 20th July there are three fishing activities so each one gets 2 / 3 = 0.67 fishing days each.
+
+The days at sea for each trip are summed over the fishing dates and rectangles so that the days at sea of each trip is reported at the gear (type and mesh size), fishing area and economic zone level.
+
+# Calculating Fishing Days
+
+Calculating the fishing days of a trip requires splitting the gears types used during the trip into active and passive.
+The distinction is held in the *gear_codes* data set included in the package.
+In essence, fishing with passive gears happens in parallel while fishing with active gears happens in series.
+
+Considering the active gears, each date which has a fishing activity using an active gear is allocated 1 fishing day.
+This is split equally among the active gear activities on that date.
+For example, the 19th July of *trip1* has four fishing activities, of which three are active gears (OTB is an active gear, GN is a passive gear).
+Each of the active gear activities is therefore allocated 1 / 3 = 0.33 fishing days.
+The second day, the 20th July, has three activities of which only one uses an active gear, the OTB gear (FPO is a passive gear).
+The OTB activity is therefore allocated 1 fishing day.
+
+Considering the passive gears, each fishing activity using a passive gear is allocated 1 fishing day.
+For example, the 19th July of *trip1* has one passive gear activity (the GN activity). This activity is allocated 1 fishing day.
+If there are multiple fishing activities with passive gears on the same fishing date, they each get allocated 1 fishing day.
+For example, the 20th July of *trip1* has three fishing activities two of which are with pasive gears (GN and FPO).
+Both of the passive fishing activities get 1 fishing day each.
+
+The fishing days for each trip are summed over the fishing dates so that the fishing days of each trip is reported at the gear (type and mesh size), fishing area, economic zone and rectangle level.
+
+There may be more fishing days on a trip than days at sea.
+
+# Simple demonstration
+
+First we load the *fecR* package:
+
+```{r}
+library(fecR)
+```
+
+## Checking the data with *check_format()*
+
+Before calculating effort we want to check the data is in the correct format. We do this with the *check_format()* function.
+
+```{r}
+dat <- check_format(dat)
+```
+
+A deliberate error has been included in the data and check shows a warning.
+The problem is that whitespace has been found in the *gear* column on row 3.
+
+We can take a look and see that there is whitespace at the end of the entry (it reads "OTB " instead of "OTB").
+
+```{r}
+dat[3,"gear"]
+```
+
+We could fix this ourselves but this simple error can be corrected by the autocorrection option.
+We call *check_format()* again, this time wih the *correct* option.
+
+```{r}
+dat <- check_format(dat, correct=TRUE)
+```
+
+The output shows that the returned data has been corrected and should now pass check.
+We pass it in again just to make sure:
+
+```{r}
+# Problem has been fixed
+dat[3,"gear"]
+# Check again
+dat <- check_format(dat)
+```
+
+The check now shows that there are no problems with the data.
+
+## Calculating fishing effort with *calc_fishing_effort()*
+
+We can now calculate the fishing effort for our data using the *calc_fishing_effort()*:
+The check function is automatically run again unless we turn it off.
+
+```{r}
+effort <- calc_fishing_effort(dat, check=FALSE)
+```
+
+This returns a list with two elements: *days_at_sea* and *fishing_days*.
+We can inspect these to look at the different effort types.
+
+
+```{r}
+effort$days_at_sea
+```
+
+The sum of the days at sea for a trip is the number of commenced 24 hour periods of that trip.
+
+```{r}
+effort$fishing_days
+```
+
+We can inspect each trip individually:
+
+```{r}
+subset(effort$fishing_days, trip_id=="trip1")
+```
+We can see that the GN gear type has 2 fishing days allocated to it. This is because it is used in two activities during the trip.
+
+
+
+# References
+
+Castro Ribeiro, C., Holmes, S., Scott, F., Berkenhagen, J., Demaneche, S., Prista, N., Reis, D., Reilly,
+T., Andriukaitiene, J., Aquilina, M., Avdič Mravlje, E., Calvo Santos, A., Charilaou, C., Dalskov, J., Davidiuk, I.,
+Diamant, A., Egekvist, J., Elliot, M., Ioannou, M., Jakovleva, I. Kuzebski, E., Ozernaja, O., Pinnelo, D., Thasitis,
+I., Verlé, K., Vitarnen, J., Wójcik, I..Report of the 2nd Workshop on Transversal Variables. Nicosia, Cyprus.
+22-26 February 2016. A DCF ad-hoc workshop EUR; doi
