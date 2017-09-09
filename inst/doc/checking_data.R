@@ -200,12 +200,6 @@ wrong_unique[4,"deptime"] <- "0731"
 test <- check_format(wrong_unique)
 
 ## ------------------------------------------------------------------------
-# Two trips with the same dates and dates
-wrong_unique <- okdata
-wrong_unique[4,"trip_id"] <- "trip3"
-test <- check_format(wrong_unique)
-
-## ------------------------------------------------------------------------
 # Duplicates
 wrong_dup <- okdata
 # Add a duplicate row

@@ -1,6 +1,4 @@
-# Copyright European Union, 2016
 # Author: Finlay Scott (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>, Nuno Prista (SLU) and Thomas Reilly (Marine Scotland)
-#
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 # Check the check_format function
@@ -240,9 +238,10 @@ test_that("trip identifier is unique", {
     wrong_unique[4,"deptime"] <- "0731"
     expect_warning(out <- check_format(wrong_unique))
     expect_warning(out <- check_format(wrong_unique, correct=TRUE))
-    # Similarly, a trip with the same dates and times cannot have a different name.
+    # Same trip identifier, but different vessel name
     wrong_unique <- okdata
-    wrong_unique[4,"trip_id"] <- "trip3"
+    wrong_unique <- rbind(wrong_unique, okdata[1,])
+    wrong_unique[nrow(wrong_unique),"eunr_id"] <- "other_boat"
     expect_warning(out <- check_format(wrong_unique))
     expect_warning(out <- check_format(wrong_unique, correct=TRUE))
 })

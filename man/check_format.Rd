@@ -47,4 +47,3 @@ See \code{\link{calc_fishing_effort}} for calculating effort.
 See the package vignette \emph{checking_data} for more details on how to use
 \code{\link{check_format}}.
 }
-

@@ -66,4 +66,3 @@ See the package vignette \emph{checking_data} for data preparation
 and the vignette \emph{calculating_fishing_effort} for the calculation
 details.
 }
-

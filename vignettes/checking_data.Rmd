@@ -25,14 +25,17 @@ Using the effort calculations in *fecR* requires the input data to be in a parti
 This vignette introduces the *check_format()* function in *fecR* that can be used to check the structure of your input data before the effort is calculated.
 
 The function checks:
+
 * The type of the columns (e.g. the *gt* column should be numeric);
 * The data columns (*depdate*, *retdate* and *fishdate*) are in the correct format;
 * The time columns (*deptime* and *rettime*) are in the correct format;
 * The gear code is included in the Master Data Register;
 * The fishing area in included in the DCF level 3 (level 4 for Baltic);
-* The ICES rectangle exists.
+* The ICES rectangle exists;
+* The trip identifier is unique.
 
 It currently does not check:
+
 * That the date and times are sensible;
 
 Some basic automatic corrections are offered (see the details below). However, any changes made to the data should be confirmed by the user after the function has executed.
@@ -45,7 +48,7 @@ If automatic corrections have been asked for, the returned data set will have th
 This table is adapted from the Nicosia report Annex.
 Each row in the table is a fishing operation.
 Each fishing operation is part of a fishing trip.
-Each fishing trip has the same departure and return dates and times and trip ID.
+Each fishing trip has the same vessel identifier, departure and return dates and times and trip ID.
 
 |Column name|Description|Format|Notes|Example|
 |-------------|---------------|--------------|-----------------------|-------------|
@@ -453,23 +456,15 @@ test <- check_format(wrong_rect)
 
 ## Checking that the trip identifier is unique
 
-Each trip is defined by the start and return dates and times and has a unique identifier.
-A trip entry with the same trip ID cannot have different dates and times.
+Each trip is defined by the vessel identifier, start and return dates and times and has a unique trip identifier.
+A trip entry with the same trip ID cannot have different vessel IDs, dates and times.
 
+For example, here we change the departure time of an entry for *trip2* so that the trip has different departure times.
 
 ```{r}
 # one trip, two days, different departure time, same identifier
 wrong_unique <- okdata
 wrong_unique[4,"deptime"] <- "0731"
-test <- check_format(wrong_unique)
-```
-
-Similarly, a trip with the same dates and times cannot have a different name.
-
-```{r}
-# Two trips with the same dates and dates
-wrong_unique <- okdata
-wrong_unique[4,"trip_id"] <- "trip3"
 test <- check_format(wrong_unique)
 ```
 

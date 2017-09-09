@@ -1,6 +1,4 @@
-# Copyright European Union, 2016
 # Author: Finlay Scott (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>, Nuno Prista (SLU) and Thomas Reilly (Marine Scotland)
-#
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 #' Calculate days at sea for a fishing trip.
@@ -105,7 +103,7 @@ calc_days_at_sea_trip <- function(trip){
 #'    rectangle = c("39F0","40F0","41F0","41F0","41F0","41F0","41F0"),
 #'    stringsAsFactors = FALSE
 #' )
-#' fd <- calc_days_at_sea_trip(trip1)
+#' fd <- calc_fishing_days_trip(trip1)
 calc_fishing_days_trip <- function(trip){
     # Check that this is just 1 trip
     if(length(unique(trip$trip_id)) != 1){

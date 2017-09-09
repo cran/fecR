@@ -42,7 +42,7 @@ trip1 <- data.frame(
    rectangle = c("39F0","40F0","41F0","41F0","41F0","41F0","41F0"),
    stringsAsFactors = FALSE
 )
-fd <- calc_days_at_sea_trip(trip1)
+fd <- calc_fishing_days_trip(trip1)
 }
 \seealso{
 See \code{\link{calc_fishing_effort}}.
@@ -50,4 +50,3 @@ See the package vignette \emph{checking_data} for data preparation
 and the vignette \emph{calculating_fishing_effort} for the calculation
 details.
 }
-

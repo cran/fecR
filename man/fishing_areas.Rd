@@ -16,4 +16,3 @@ fishing_areas
 A dataset of fishing areas given as DCF level 3 (DCF level 4 for the Baltic).
 }
 \keyword{datasets}
-

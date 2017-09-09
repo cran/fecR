@@ -46,4 +46,3 @@ check <- character_column_check(dat$gear, "gear", missing_correct=TRUE, unknown_
 \seealso{
 This function is used by \code{\link{check_format}}.
 }
-

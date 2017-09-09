@@ -1,6 +1,4 @@
-# Copyright European Union, 2016
 # Author: Finlay Scott (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>, Nuno Prista (SLU) and Thomas Reilly (Marine Scotland)
-#
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 # Man pages for data sets

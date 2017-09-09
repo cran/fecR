@@ -1,6 +1,4 @@
-# Copyright European Union, 2016
 # Author: Finlay Scott (EC JRC) <iago.mosqueira@jrc.ec.europa.eu>, Nuno Prista (SLU) and Thomas Reilly (Marine Scotland)
-#
 # Distributed under the terms of the European Union Public Licence (EUPL) V.1.1.
 
 #' Checks a character column in a fishing trip data column
@@ -149,7 +147,6 @@ check_format<-function(x, correct=FALSE)
     
 
     # eunr_id - vessel id - anonymous
-    # Why do we have this?
     print("Checking eunr_id...")
     eunr_id_check <- character_column_check(x$eunr_id, "eunr_id", character_correct=correct, missing_correct=FALSE)
     checkok <- checkok & eunr_id_check$ok
@@ -412,25 +409,20 @@ check_format<-function(x, correct=FALSE)
     x$trip_id <- trip_id_check$column
     if(trip_id_check$ok){
         print("Checking uniqueness of trip_id...")
-        trip_id_duplicate <- !(tapply(paste(x$trip_id, x$depdate, x$deptime, x$retdate, x$rettime), x$trip_id, function(x){length(unique(x))}) == 1)
+        trip_id_duplicate <- !(tapply(paste(x$trip_id, x$eunr_id, x$depdate, x$deptime, x$retdate, x$rettime), x$trip_id, function(x){length(unique(x))}) == 1)
         if(any(trip_id_duplicate)){
             print ("ATT: trip_id does not uniquely identify fishing_trip:")
             print("e.g.:")
             print(unique(x[x$trip_id==names(which(trip_id_duplicate))[1],c("eunr_id","trip_id","depdate","deptime","retdate","rettime")]))
-            warning("Trips must be unique")
-            checkok <- FALSE
-        }
-        # Are there trips with the same dates and times but different IDs?
-        trip_id_bad <- nrow(unique(x[,c("depdate","retdate","deptime","rettime")])) != nrow(unique(x[,c("trip_id", "depdate","retdate","deptime","rettime")]))
-        if(trip_id_bad){
-            print("ATT: The same departure and return dates and times cannot have a different trip_id")
-            warning("The same departure and return dates and times cannot have a different trip_id")
+            warning("Trips must have unique combination of eunr_id, depdate, deptime, retdate and rettime")
             checkok <- FALSE
         }
     }
 
-    # Check that the trips do not overlap
+    # Checks to be added
+    # Check that the trips for a vessel do not overlap
     # Check departure time is before return time 
+
     # Check for duplicates in dataset
     # Removes if wanted
     print("Checking duplicates...")

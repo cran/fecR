@@ -19,4 +19,3 @@ ices_rectangles
 A dataset of ICES rectangles.
 }
 \keyword{datasets}
-

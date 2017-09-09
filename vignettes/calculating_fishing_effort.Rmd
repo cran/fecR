@@ -25,7 +25,7 @@ This vignette introduces the *fecR* package and how to use it.
 The package implements fishing effort calculations that were developed at the 2nd Workshop on Transversal Variables held in Nicosia, Cyprus on 22-26 February 2016 (Castro Ribeiro et al., 2016).
 
 *fecR* can be used to calculate two types of fishing effort: *Days at Sea* and *Fishing Days*.
-These effort types measure different things. Days at Sea is concerned with the economics of fishing whereas Fishing Days is concerned with the biological pressure of fishing.
+These effort types measure different things. Days at Sea is concerned with the economics of fishing whereas Fishing Days is concerned with the fishing pressure on the stock. 
 These measures are explained in more detail below.
 
 # Workflow
@@ -63,9 +63,11 @@ This function calculates both effort measures and returns a list of two *data.fr
 
 Fishing effort is calculated for each fishing trip.
 It is therefore important to explore what we mean by trip and what happens during a trip.
+A fishing trip has the same vessel identifier and departure and return dates and times.
+Each fishing trip has a unique trip identifier.
 
 An example data set is created here.
-It consists of two fishing trips
+It consists of two fishing trips.
 As mentioned above, it is essential that the input data is formatted correctly. More information can be seen in the *checking_data* vignette.
 
 ```{r}
@@ -99,11 +101,9 @@ trip2 <- data.frame(
 dat <- rbind(trip1, trip2)
 dat
 ```
-# Fishing trips
-
 The data above consists of two fishing trips.
 The trips are identified by the *trip_id* column which must be unique for each trip.
-Within each trip the departure and return dates and times must be the same (the *depdate*, *deptime*, *retdate* and *rettime* columns).
+Within each trip the vessel identifier, departure and return dates and times must be the same (the *eunr_id*, *depdate*, *deptime*, *retdate* and *rettime* columns).
 
 Each fishing trip is made up of different fishing activites. A fishing activity is the use of a particular gear in a particular area on a particular date.
 Gear is a combination of the gear type and the gear mesh size.
@@ -125,35 +125,35 @@ Fishing days is reported at the gear (type and mesh size), fishing area, economi
 
 # Calculating Days at Sea
 
-The total days at sea is calculated as the number of commenced 24 hour periods of the trip.
+The total Days at Sea of a trip is calculated as the number of commenced 24 hour periods of the trip.
 Only the total duration of trip is considered, i.e. the difference between departing and returning. 
 
 For example, *trip1* above starts on 18th July 2014 at 06:15 and returns on the 21st July 2014 at 16:15.
 The total duration of the trip is therefore 3*24 + 10 = 85 hours. This takes the trip into the 4th commencing 24 hour period.
-The total days at sea is therefore 4 days.
+The total Days at Sea is therefore 4 days.
 
-We want to know the days at sea attributed to each activity on a trip.
-The total days at sea are split equally across each day on the trip on which fishing occurs, i.e. the number of unique fishing dates on the trip.
+We want to know the Days at Sea attributed to each activity on a trip.
+The total Days at Sea are split equally across each day on the trip on which fishing occurs, i.e. the number of unique fishing dates on the trip.
 In *trip1* the only days on which fishing occurs are the 19th and 20th of July, i.e. the number of fishing dates is 2.  
-The total days at sea is split equally among them so each fishing date gets 2 days at sea each.
+The total Days at Sea is split equally among them so each fishing date gets 2 Days at Sea each.
 
-Within each fishing date, the days at sea attributed to that day is split equally across the fishing activities on that day.
+Within each fishing date, the Days at Sea attributed to that day is split equally across the fishing activities on that day.
 In *trip1* on the 19th July there are four different fishing activities (given by the different gear and area combinations).
 Each fishing activity on the 19th July therefore gets 2 / 4 = 0.5 fishing day each.
-On the 20th July there are three fishing activities so each one gets 2 / 3 = 0.67 fishing days each.
+On the 20th July there are three fishing activities so each one gets 2 / 3 = 0.67 Fishing Days each.
 
-The days at sea for each trip are summed over the fishing dates and rectangles so that the days at sea of each trip is reported at the gear (type and mesh size), fishing area and economic zone level.
+The Days at Sea for each trip are summed over the fishing dates and rectangles so that the Days at Sea of each trip is reported at the gear (type and mesh size), fishing area and economic zone level.
 
 # Calculating Fishing Days
 
-Calculating the fishing days of a trip requires splitting the gears types used during the trip into active and passive.
+Calculating the Fishing Days of a trip requires splitting the gears types used during the trip into active and passive.
 The distinction is held in the *gear_codes* data set included in the package.
 In essence, fishing with passive gears happens in parallel while fishing with active gears happens in series.
 
 Considering the active gears, each date which has a fishing activity using an active gear is allocated 1 fishing day.
 This is split equally among the active gear activities on that date.
 For example, the 19th July of *trip1* has four fishing activities, of which three are active gears (OTB is an active gear, GN is a passive gear).
-Each of the active gear activities is therefore allocated 1 / 3 = 0.33 fishing days.
+Each of the active gear activities is therefore allocated 1 / 3 = 0.33 Fishing Days.
 The second day, the 20th July, has three activities of which only one uses an active gear, the OTB gear (FPO is a passive gear).
 The OTB activity is therefore allocated 1 fishing day.
 
@@ -163,9 +163,9 @@ If there are multiple fishing activities with passive gears on the same fishing 
 For example, the 20th July of *trip1* has three fishing activities two of which are with pasive gears (GN and FPO).
 Both of the passive fishing activities get 1 fishing day each.
 
-The fishing days for each trip are summed over the fishing dates so that the fishing days of each trip is reported at the gear (type and mesh size), fishing area, economic zone and rectangle level.
+The Fishing Days for each trip are summed over the fishing dates so that the Fishing Days of each trip is reported at the gear (type and mesh size), fishing area, economic zone and rectangle level.
 
-There may be more fishing days on a trip than days at sea.
+There may be more Fishing Days on a trip than Days at Sea.
 
 # Simple demonstration
 
@@ -185,8 +185,7 @@ dat <- check_format(dat)
 
 A deliberate error has been included in the data and check shows a warning.
 The problem is that whitespace has been found in the *gear* column on row 3.
-
-We can take a look and see that there is whitespace at the end of the entry (it reads "OTB " instead of "OTB").
+We can take a look and see that there is whitespace at the end of the entry.
 
 ```{r}
 dat[3,"gear"]
@@ -223,12 +222,15 @@ effort <- calc_fishing_effort(dat, check=FALSE)
 This returns a list with two elements: *days_at_sea* and *fishing_days*.
 We can inspect these to look at the different effort types.
 
+Days at Sea is given by trip, gear, fishing area and economic zone.
 
 ```{r}
 effort$days_at_sea
 ```
 
-The sum of the days at sea for a trip is the number of commenced 24 hour periods of that trip.
+The sum of the Days at Sea for a trip is the number of commenced 24 hour periods of that trip.
+
+Fishing Days is given by trip, gear (type and mesh size), fishing area, economic zone and rectangle. 
 
 ```{r}
 effort$fishing_days
@@ -239,7 +241,7 @@ We can inspect each trip individually:
 ```{r}
 subset(effort$fishing_days, trip_id=="trip1")
 ```
-We can see that the GN gear type has 2 fishing days allocated to it. This is because it is used in two activities during the trip.
+We can see that the GN gear type has 2 Fishing Days allocated to it. This is because it is used in two activities during the trip.
 
 
 
